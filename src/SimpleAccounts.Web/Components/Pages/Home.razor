@@ -1,7 +1,125 @@
 ﻿@page "/"
+@using Microsoft.EntityFrameworkCore
+@using SimpleAccounts.Data
+@inject ApplicationDbContext DbContext
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Dashboard - SimpleAccounts</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Dashboard</h1>
 
-Welcome to your new app.
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Stock Items</h5>
+                <p class="card-text display-4">@stockItemCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Customers</h5>
+                <p class="card-text display-4">@customerCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Sales Orders</h5>
+                <p class="card-text display-4">@salesOrderCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Quotes</h5>
+                <p class="card-text display-4">@quoteCount</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <h3>Recent Sales Orders</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in recentOrders)
+                {
+                    <tr>
+                        <td>@order.OrderNumber</td>
+                        <td>@order.Customer.Name</td>
+                        <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
+                        <td>@order.TotalAmount.ToString("C")</td>
+                        <td>@order.Status</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <h3>Low Stock Items</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Quantity</th>
+                    <th>Reorder Level</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in lowStockItems)
+                {
+                    <tr>
+                        <td>@item.Code</td>
+                        <td>@item.Name</td>
+                        <td>@item.QuantityOnHand</td>
+                        <td>@item.ReorderLevel</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private int stockItemCount;
+    private int customerCount;
+    private int salesOrderCount;
+    private int quoteCount;
+    private List<SimpleAccounts.Data.Models.SalesOrder> recentOrders = new();
+    private List<SimpleAccounts.Data.Models.StockItem> lowStockItems = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        stockItemCount = await DbContext.StockItems.CountAsync();
+        customerCount = await DbContext.Customers.CountAsync();
+        salesOrderCount = await DbContext.SalesOrders.CountAsync();
+        quoteCount = await DbContext.Quotes.CountAsync();
+
+        recentOrders = await DbContext.SalesOrders
+            .Include(so => so.Customer)
+            .OrderByDescending(so => so.OrderDate)
+            .Take(5)
+            .ToListAsync();
+
+        lowStockItems = await DbContext.StockItems
+            .Where(si => si.QuantityOnHand <= si.ReorderLevel)
+            .OrderBy(si => si.QuantityOnHand)
+            .Take(5)
+            .ToListAsync();
+    }
+}

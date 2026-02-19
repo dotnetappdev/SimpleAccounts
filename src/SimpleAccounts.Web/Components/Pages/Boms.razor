@@ -1,0 +1,72 @@
+@page "/boms"
+@using Microsoft.EntityFrameworkCore
+@using SimpleAccounts.Data
+@using SimpleAccounts.Data.Models
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Bill of Materials - SimpleAccounts</PageTitle>
+
+<h1>Bill of Materials</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary">
+        <i class="bi bi-plus"></i> Create BOM
+    </button>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Finished Product</th>
+            <th>Quantity</th>
+            <th>Components</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var bom in boms)
+        {
+            <tr>
+                <td>@bom.Code</td>
+                <td>@bom.Name</td>
+                <td>@bom.FinishedProduct?.Name</td>
+                <td>@bom.Quantity</td>
+                <td>@bom.BomLines?.Count</td>
+                <td>
+                    <button class="btn btn-sm btn-info">View</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteBom(bom.Id)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<BillOfMaterials> boms = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        boms = await DbContext.BillOfMaterials
+            .Include(b => b.FinishedProduct)
+            .Include(b => b.BomLines)
+            .ToListAsync();
+    }
+
+    private async Task DeleteBom(int id)
+    {
+        var bom = await DbContext.BillOfMaterials.FindAsync(id);
+        if (bom != null)
+        {
+            DbContext.BillOfMaterials.Remove(bom);
+            await DbContext.SaveChangesAsync();
+            await LoadData();
+        }
+    }
+}

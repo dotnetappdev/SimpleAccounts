@@ -1,0 +1,76 @@
+@page "/payments"
+
+<PageTitle>Payments - SimpleAccounts</PageTitle>
+
+<h1>Payment Processing</h1>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h5>Stripe</h5>
+            </div>
+            <div class="card-body">
+                <p>Process payments using Stripe payment gateway.</p>
+                <button class="btn btn-primary">Configure Stripe</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white">
+                <h5>WorldPay</h5>
+            </div>
+            <div class="card-body">
+                <p>Process payments using WorldPay payment gateway.</p>
+                <button class="btn btn-success">Configure WorldPay</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+                <h5>PayPal</h5>
+            </div>
+            <div class="card-body">
+                <p>Process payments using PayPal.</p>
+                <button class="btn btn-info">Configure PayPal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <h3>Payment Form</h3>
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Amount</label>
+                <input type="number" class="form-control" placeholder="Enter amount" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Currency</label>
+                <select class="form-select">
+                    <option value="GBP">GBP - British Pound</option>
+                    <option value="USD">USD - US Dollar</option>
+                    <option value="EUR">EUR - Euro</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Payment Method</label>
+                <select class="form-select">
+                    <option value="stripe">Stripe</option>
+                    <option value="worldpay">WorldPay</option>
+                    <option value="paypal">PayPal</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <input type="text" class="form-control" placeholder="Payment description" />
+            </div>
+            <button class="btn btn-primary">Process Payment</button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,125 @@
+@page "/sales-orders"
+@using Microsoft.EntityFrameworkCore
+@using SimpleAccounts.Data
+@using SimpleAccounts.Data.Models
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Sales Orders - SimpleAccounts</PageTitle>
+
+<h1>Sales Orders</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddDialog">
+        <i class="bi bi-plus"></i> Create Sales Order
+    </button>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Order Number</th>
+            <th>Customer</th>
+            <th>Order Date</th>
+            <th>Status</th>
+            <th>Total Amount</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var order in salesOrders)
+        {
+            <tr>
+                <td>@order.OrderNumber</td>
+                <td>@order.Customer?.Name</td>
+                <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
+                <td><span class="badge bg-primary">@order.Status</span></td>
+                <td>@order.TotalAmount.ToString("C")</td>
+                <td>
+                    <button class="btn btn-sm btn-info" @onclick="() => ViewOrder(order)">View</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteOrder(order.Id)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (showDialog)
+{
+    <div class="modal" tabindex="-1" style="display: block; background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(viewingOrder != null ? "View" : "Create") Sales Order</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDialog"></button>
+                </div>
+                <div class="modal-body">
+                    @if (viewingOrder != null)
+                    {
+                        <p><strong>Order Number:</strong> @viewingOrder.OrderNumber</p>
+                        <p><strong>Customer:</strong> @viewingOrder.Customer?.Name</p>
+                        <p><strong>Order Date:</strong> @viewingOrder.OrderDate.ToString("yyyy-MM-dd")</p>
+                        <p><strong>Status:</strong> @viewingOrder.Status</p>
+                        <p><strong>Subtotal:</strong> @viewingOrder.SubTotal.ToString("C")</p>
+                        <p><strong>Tax:</strong> @viewingOrder.TaxAmount.ToString("C")</p>
+                        <p><strong>Total:</strong> @viewingOrder.TotalAmount.ToString("C")</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Sales order creation would include customer selection, line items, and automatic tax calculation.</p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDialog">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<SalesOrder> salesOrders = new();
+    private bool showDialog = false;
+    private SalesOrder? viewingOrder;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        salesOrders = await DbContext.SalesOrders
+            .Include(so => so.Customer)
+            .OrderByDescending(so => so.OrderDate)
+            .ToListAsync();
+    }
+
+    private void ShowAddDialog()
+    {
+        viewingOrder = null;
+        showDialog = true;
+    }
+
+    private void ViewOrder(SalesOrder order)
+    {
+        viewingOrder = order;
+        showDialog = true;
+    }
+
+    private void CloseDialog()
+    {
+        showDialog = false;
+        viewingOrder = null;
+    }
+
+    private async Task DeleteOrder(int id)
+    {
+        var order = await DbContext.SalesOrders.FindAsync(id);
+        if (order != null)
+        {
+            DbContext.SalesOrders.Remove(order);
+            await DbContext.SaveChangesAsync();
+            await LoadData();
+        }
+    }
+}

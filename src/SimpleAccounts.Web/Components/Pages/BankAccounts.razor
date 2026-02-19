@@ -1,0 +1,187 @@
+@page "/bank-accounts"
+@using Microsoft.EntityFrameworkCore
+@using SimpleAccounts.Data
+@using SimpleAccounts.Data.Models
+@inject ApplicationDbContext DbContext
+
+<PageTitle>Bank Accounts - SimpleAccounts</PageTitle>
+
+<h1>Bank Accounts</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddDialog">
+        <i class="bi bi-plus"></i> Add Bank Account
+    </button>
+</div>
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Account Name</th>
+            <th>Account Number</th>
+            <th>Bank Name</th>
+            <th>Customer</th>
+            <th>Balance</th>
+            <th>Currency</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var account in bankAccounts)
+        {
+            <tr>
+                <td>@account.AccountName</td>
+                <td>@account.AccountNumber</td>
+                <td>@account.BankName</td>
+                <td>@(account.Customer?.Name ?? "N/A")</td>
+                <td>@account.Balance.ToString("C")</td>
+                <td>@account.Currency</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" @onclick="() => EditAccount(account)">Edit</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteAccount(account.Id)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (showDialog)
+{
+    <div class="modal" tabindex="-1" style="display: block; background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(editingAccount?.Id > 0 ? "Edit" : "Add") Bank Account</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Account Name</label>
+                            <input type="text" class="form-control" @bind="editingAccount!.AccountName" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Account Number</label>
+                            <input type="text" class="form-control" @bind="editingAccount!.AccountNumber" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Bank Name</label>
+                            <input type="text" class="form-control" @bind="editingAccount!.BankName" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sort Code / Routing Number</label>
+                            <input type="text" class="form-control" @bind="editingAccount!.SortCode" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Balance</label>
+                            <input type="number" step="0.01" class="form-control" @bind="editingAccount!.Balance" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Currency</label>
+                            <select class="form-select" @bind="editingAccount!.Currency">
+                                <option value="GBP">GBP</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDialog">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveAccount">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<BankAccount> bankAccounts = new();
+    private bool showDialog = false;
+    private BankAccount? editingAccount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        bankAccounts = await DbContext.BankAccounts
+            .Include(ba => ba.Customer)
+            .ToListAsync();
+    }
+
+    private void ShowAddDialog()
+    {
+        editingAccount = new BankAccount { Currency = "GBP" };
+        showDialog = true;
+    }
+
+    private void EditAccount(BankAccount account)
+    {
+        editingAccount = new BankAccount
+        {
+            Id = account.Id,
+            AccountName = account.AccountName,
+            AccountNumber = account.AccountNumber,
+            BankName = account.BankName,
+            SortCode = account.SortCode,
+            Balance = account.Balance,
+            Currency = account.Currency,
+            CustomerId = account.CustomerId
+        };
+        showDialog = true;
+    }
+
+    private void CloseDialog()
+    {
+        showDialog = false;
+        editingAccount = null;
+    }
+
+    private async Task SaveAccount()
+    {
+        if (editingAccount != null)
+        {
+            if (editingAccount.Id == 0)
+            {
+                editingAccount.CreatedDate = DateTime.UtcNow;
+                DbContext.BankAccounts.Add(editingAccount);
+            }
+            else
+            {
+                var existing = await DbContext.BankAccounts.FindAsync(editingAccount.Id);
+                if (existing != null)
+                {
+                    existing.AccountName = editingAccount.AccountName;
+                    existing.AccountNumber = editingAccount.AccountNumber;
+                    existing.BankName = editingAccount.BankName;
+                    existing.SortCode = editingAccount.SortCode;
+                    existing.Balance = editingAccount.Balance;
+                    existing.Currency = editingAccount.Currency;
+                    existing.LastModifiedDate = DateTime.UtcNow;
+                }
+            }
+
+            await DbContext.SaveChangesAsync();
+            await LoadData();
+            CloseDialog();
+        }
+    }
+
+    private async Task DeleteAccount(int id)
+    {
+        var account = await DbContext.BankAccounts.FindAsync(id);
+        if (account != null)
+        {
+            DbContext.BankAccounts.Remove(account);
+            await DbContext.SaveChangesAsync();
+            await LoadData();
+        }
+    }
+}
