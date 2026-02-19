@@ -165,11 +165,11 @@ public class QuotesController : ControllerBase
             return NotFound();
         }
 
-        // Create a new sales order from the quote
+        // Create a new sales order from the quote with unique order number
         var salesOrder = new SalesOrder
         {
             CustomerId = quote.CustomerId,
-            OrderNumber = $"SO-{DateTime.UtcNow:yyyyMMddHHmmss}",
+            OrderNumber = $"SO-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}".Substring(0, 30),
             OrderDate = DateTime.UtcNow,
             Status = "Draft",
             SubTotal = quote.SubTotal,

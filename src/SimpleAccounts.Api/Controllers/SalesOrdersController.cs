@@ -162,7 +162,8 @@ public class SalesOrdersController : ControllerBase
             return NotFound();
         }
 
-        // Simple PDF generation (placeholder - would need a PDF library like QuestPDF or iTextSharp)
+        // NOTE: Placeholder implementation - returns formatted text
+        // For production, use a PDF library like QuestPDF or iTextSharp
         var pdfContent = $"SALES ORDER #{salesOrder.OrderNumber}\n\n" +
                         $"Date: {salesOrder.OrderDate:yyyy-MM-dd}\n" +
                         $"Customer: {salesOrder.Customer.Name}\n" +

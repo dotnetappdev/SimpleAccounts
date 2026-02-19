@@ -20,7 +20,7 @@
     <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mb-3" CloseIcon="@Icons.Material.Filled.Close" CloseIconClicked="@(() => paymentLinkMessage = string.Empty)">
         <strong>Payment Link Generated:</strong><br/>
         @generatedPaymentLink
-        <button class="btn btn-sm btn-light mt-2" @onclick="CopyPaymentLink">
+        <button class="btn btn-sm btn-light mt-2" @onclick="ShowCopyMessage">
             <i class="bi bi-clipboard"></i> Copy Link
         </button>
     </MudAlert>
@@ -180,12 +180,13 @@
         }
     }
 
-    private async Task CopyPaymentLink()
+    private async Task ShowCopyMessage()
     {
         // In a real app, this would use JS Interop to copy to clipboard
         // For now, just show a message
         paymentLinkMessage = "Link copied to clipboard!";
-        await Task.Delay(2000);
+        const int MESSAGE_DISPLAY_DURATION_MS = 2000;
+        await Task.Delay(MESSAGE_DISPLAY_DURATION_MS);
     }
 
     private async Task DeleteOrder(int id)
