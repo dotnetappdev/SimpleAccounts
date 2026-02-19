@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using SimpleAccounts.Data;
 using SimpleAccounts.Data.Services;
 using SimpleAccounts.Web.Components;
+using SimpleAccounts.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,7 +21,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
         b => b.MigrationsAssembly("SimpleAccounts.Api")));
 
-// Add Identity
+// Add Identity (for database operations only, not for authentication)
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = true;
@@ -31,22 +33,21 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-// Configure cookie policy
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.LoginPath = "/Account/Login";
-    options.LogoutPath = "/Account/Logout";
-    options.AccessDeniedPath = "/Account/AccessDenied";
-});
+// Add Authentication State Provider for JWT
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddTransient<JwtAuthenticationHandler>();
+builder.Services.AddAuthorizationCore();
 
 // Add Services
 builder.Services.AddScoped<ITaxService, TaxService>();
 
-// Add HttpClient for API calls
+// Add HttpClient for API calls with JWT handler
 builder.Services.AddHttpClient("SimpleAccountsAPI", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7001");
-});
+})
+.AddHttpMessageHandler<JwtAuthenticationHandler>();
 
 var app = builder.Build();
 
@@ -60,9 +61,6 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
-
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.UseAntiforgery();
 

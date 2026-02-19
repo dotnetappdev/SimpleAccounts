@@ -1,4 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization
+@using SimpleAccounts.Web.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -12,7 +16,19 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <AuthorizeView>
+                <Authorized>
+                    <div class="d-flex align-items-center gap-3">
+                        <span>Welcome, @context.User.FindFirst("FirstName")?.Value @context.User.FindFirst("LastName")?.Value</span>
+                        <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="Logout" Size="Size.Small">
+                            <MudIcon Icon="@Icons.Material.Filled.Logout" Size="Size.Small" Class="me-1" /> Logout
+                        </MudButton>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <a href="/login">Login</a>
+                </NotAuthorized>
+            </AuthorizeView>
         </div>
 
         <article class="content px-4">
@@ -26,3 +42,11 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private async Task Logout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login", true);
+    }
+}

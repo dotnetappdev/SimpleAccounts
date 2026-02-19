@@ -1,0 +1,120 @@
+@page "/login"
+@using SimpleAccounts.Web.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Login - SimpleAccounts</PageTitle>
+
+<div class="login-container">
+    <MudPaper Class="pa-6" Elevation="4" MaxWidth="400px" Style="margin: 100px auto;">
+        <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true">
+            SimpleAccounts
+        </MudText>
+        <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-4">
+            Sign in to your account
+        </MudText>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+        }
+
+        <MudForm @ref="form">
+            <MudTextField @bind-Value="email" 
+                          Label="Email" 
+                          Variant="Variant.Outlined" 
+                          Required="true"
+                          RequiredError="Email is required"
+                          InputType="InputType.Email"
+                          Class="mb-4" />
+
+            <MudTextField @bind-Value="password" 
+                          Label="Password" 
+                          Variant="Variant.Outlined" 
+                          Required="true"
+                          RequiredError="Password is required"
+                          InputType="InputType.Password"
+                          Class="mb-4" />
+
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       FullWidth="true"
+                       OnClick="HandleLogin"
+                       Disabled="isLoading">
+                @if (isLoading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    <span class="ms-2">Signing in...</span>
+                }
+                else
+                {
+                    <span>Sign In</span>
+                }
+            </MudButton>
+        </MudForm>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.body2" Align="Align.Center" Class="mt-4">
+            Test Accounts:
+        </MudText>
+        <MudText Typo="Typo.caption" Align="Align.Center">
+            admin@simpleaccounts.com / Admin@123
+        </MudText>
+        <MudText Typo="Typo.caption" Align="Align.Center">
+            sales@simpleaccounts.com / Test@123
+        </MudText>
+    </MudPaper>
+</div>
+
+<style>
+    .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+</style>
+
+@code {
+    private MudForm? form;
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        errorMessage = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Please enter email and password";
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            var result = await AuthService.LoginAsync(email, password);
+
+            if (result.Success)
+            {
+                Navigation.NavigateTo("/", true);
+            }
+            else
+            {
+                errorMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Login failed: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
