@@ -8,9 +8,62 @@ Development: `https://localhost:7001/api`
 
 ## Authentication
 
-Most endpoints require authentication using ASP.NET Core Identity. Protected endpoints require:
-- Valid authentication cookie/token
+The API uses JWT (JSON Web Token) bearer authentication. Protected endpoints require:
+- Valid JWT token in the Authorization header
 - Appropriate role membership
+
+### Getting a Token
+
+**Login:**
+```
+POST /api/auth/login
+
+{
+  "email": "admin@simpleaccounts.com",
+  "password": "Admin@123"
+}
+```
+
+**Response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "email": "admin@simpleaccounts.com",
+  "firstName": "Admin",
+  "lastName": "User",
+  "roles": ["Admin"],
+  "expiresAt": "2024-01-01T13:00:00Z"
+}
+```
+
+**Using the Token:**
+
+Include the token in the Authorization header for all protected requests:
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Token Refresh:**
+```
+POST /api/auth/refresh
+
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+Returns a new token with extended expiry.
+
+### JWT Claims
+
+The JWT token includes the following claims:
+- **NameIdentifier**: User ID
+- **Name**: Username
+- **Email**: User email address
+- **FirstName**: User's first name
+- **LastName**: User's last name
+- **Role**: User role(s) for authorization
+- Custom claims from the database
 
 ### Roles
 
@@ -19,6 +72,13 @@ Most endpoints require authentication using ASP.NET Core Identity. Protected end
 - **SalesUser**: Customer and sales operations
 - **WarehouseUser**: Inventory management
 - **Accountant**: Financial operations
+
+### Token Configuration
+
+- **Expiry**: 60 minutes (configurable in appsettings.json)
+- **Algorithm**: HMACSHA256
+- **Issuer**: SimpleAccountsAPI
+- **Audience**: SimpleAccountsWeb
 
 ## Endpoints
 

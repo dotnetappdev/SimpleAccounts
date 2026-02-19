@@ -25,7 +25,10 @@ A modern, full-featured accounts management system built with ASP.NET Core and B
 - **PayPal** - PayPal payment processing
 
 ### Security & Access Control
-- **ASP.NET Core Identity** - User authentication and authorization
+- **JWT Bearer Token Authentication** - Secure token-based authentication
+- **Claims-Based Authorization** - User claims stored in JWT tokens
+- **Session Management** - Secure token storage in protected session
+- **ASP.NET Core Identity** - User and role management
 - **Role-Based Access Control** - Pre-configured roles:
   - Admin - Full system access
   - Manager - Management functions
@@ -39,7 +42,8 @@ A modern, full-featured accounts management system built with ASP.NET Core and B
 - **Frontend**: Blazor Server with MudBlazor Material Design
 - **Database**: Entity Framework Core with SQL Server
 - **UI Framework**: Bootstrap 5 + MudBlazor
-- **Authentication**: ASP.NET Core Identity
+- **Authentication**: JWT Bearer Tokens with Claims
+- **Authorization**: ASP.NET Core Identity with Roles
 
 ## Project Structure
 
