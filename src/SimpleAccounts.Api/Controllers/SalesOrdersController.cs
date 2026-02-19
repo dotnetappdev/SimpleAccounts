@@ -116,8 +116,91 @@ public class SalesOrdersController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("{id}/generate-payment-link")]
+    [Authorize(Roles = "Admin,Manager,SalesUser")]
+    public async Task<ActionResult<PaymentLinkResponse>> GeneratePaymentLink(int id, [FromBody] PaymentLinkRequest request)
+    {
+        var salesOrder = await _context.SalesOrders
+            .Include(so => so.Customer)
+            .FirstOrDefaultAsync(so => so.Id == id);
+
+        if (salesOrder == null)
+        {
+            return NotFound();
+        }
+
+        // Generate a unique payment token
+        var paymentToken = Guid.NewGuid().ToString("N");
+        
+        // In production, this would create an actual payment session with the payment provider
+        var paymentLink = $"{Request.Scheme}://{Request.Host}/payment/{paymentToken}";
+        
+        return Ok(new PaymentLinkResponse
+        {
+            PaymentLink = paymentLink,
+            PaymentToken = paymentToken,
+            OrderId = salesOrder.Id,
+            Amount = salesOrder.TotalAmount,
+            Currency = request.Currency ?? "GBP",
+            ExpiresAt = DateTime.UtcNow.AddHours(24),
+            PaymentMethod = request.PaymentMethod
+        });
+    }
+
+    [HttpGet("{id}/pdf")]
+    [Authorize(Roles = "Admin,Manager,SalesUser")]
+    public async Task<IActionResult> GenerateSalesOrderPdf(int id)
+    {
+        var salesOrder = await _context.SalesOrders
+            .Include(so => so.Customer)
+            .Include(so => so.OrderLines)
+                .ThenInclude(ol => ol.StockItem)
+            .FirstOrDefaultAsync(so => so.Id == id);
+
+        if (salesOrder == null)
+        {
+            return NotFound();
+        }
+
+        // Simple PDF generation (placeholder - would need a PDF library like QuestPDF or iTextSharp)
+        var pdfContent = $"SALES ORDER #{salesOrder.OrderNumber}\n\n" +
+                        $"Date: {salesOrder.OrderDate:yyyy-MM-dd}\n" +
+                        $"Customer: {salesOrder.Customer.Name}\n" +
+                        $"Status: {salesOrder.Status}\n\n" +
+                        $"Items:\n";
+
+        foreach (var line in salesOrder.OrderLines)
+        {
+            pdfContent += $"{line.StockItem.Name} - Qty: {line.Quantity} @ ${line.UnitPrice} = ${line.LineTotal}\n";
+        }
+
+        pdfContent += $"\nSubtotal: ${salesOrder.SubTotal}\n" +
+                     $"Tax: ${salesOrder.TaxAmount}\n" +
+                     $"Total: ${salesOrder.TotalAmount}";
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(pdfContent);
+        return File(bytes, "text/plain", $"SalesOrder_{salesOrder.OrderNumber}.txt");
+    }
+
     private bool SalesOrderExists(int id)
     {
         return _context.SalesOrders.Any(e => e.Id == id);
     }
+}
+
+public class PaymentLinkRequest
+{
+    public string PaymentMethod { get; set; } = "stripe";
+    public string? Currency { get; set; }
+}
+
+public class PaymentLinkResponse
+{
+    public string PaymentLink { get; set; } = string.Empty;
+    public string PaymentToken { get; set; } = string.Empty;
+    public int OrderId { get; set; }
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
 }

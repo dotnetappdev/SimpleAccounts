@@ -150,6 +150,60 @@ public class QuotesController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("{id}/convert-to-order")]
+    [Authorize(Roles = "Admin,Manager,SalesUser")]
+    public async Task<ActionResult<SalesOrder>> ConvertQuoteToSalesOrder(int id)
+    {
+        var quote = await _context.Quotes
+            .Include(q => q.Customer)
+            .Include(q => q.QuoteLines)
+                .ThenInclude(ql => ql.StockItem)
+            .FirstOrDefaultAsync(q => q.Id == id);
+
+        if (quote == null)
+        {
+            return NotFound();
+        }
+
+        // Create a new sales order from the quote
+        var salesOrder = new SalesOrder
+        {
+            CustomerId = quote.CustomerId,
+            OrderNumber = $"SO-{DateTime.UtcNow:yyyyMMddHHmmss}",
+            OrderDate = DateTime.UtcNow,
+            Status = "Draft",
+            SubTotal = quote.SubTotal,
+            TaxAmount = quote.TaxAmount,
+            TotalAmount = quote.TotalAmount,
+            Notes = $"Converted from Quote #{quote.QuoteNumber}",
+            CreatedDate = DateTime.UtcNow,
+            OrderLines = new List<SalesOrderLine>()
+        };
+
+        // Convert quote lines to sales order lines
+        foreach (var quoteLine in quote.QuoteLines)
+        {
+            salesOrder.OrderLines.Add(new SalesOrderLine
+            {
+                StockItemId = quoteLine.StockItemId,
+                Quantity = quoteLine.Quantity,
+                UnitPrice = quoteLine.UnitPrice,
+                Discount = quoteLine.Discount,
+                LineTotal = quoteLine.LineTotal
+            });
+        }
+
+        _context.SalesOrders.Add(salesOrder);
+
+        // Update quote status to "Accepted"
+        quote.Status = "Accepted";
+        quote.LastModifiedDate = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return CreatedAtAction("GetSalesOrder", "SalesOrders", new { id = salesOrder.Id }, salesOrder);
+    }
+
     private bool QuoteExists(int id)
     {
         return _context.Quotes.Any(e => e.Id == id);

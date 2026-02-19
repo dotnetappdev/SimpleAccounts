@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 using SimpleAccounts.Data;
 using SimpleAccounts.Data.Services;
 using SimpleAccounts.Web.Components;
@@ -9,6 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Add MudBlazor services
+builder.Services.AddMudServices();
 
 // Add Database Context
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
