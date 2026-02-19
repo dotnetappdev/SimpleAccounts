@@ -11,6 +11,8 @@ A modern, full-featured accounts management system built with ASP.NET Core and B
 - **Customer Management** - Maintain customer records with contact details and credit limits
 - **Bank Account Management** - Track bank accounts for customers and the business
 - **Quote Generation** - Create quotes with PDF export capability
+- **Quote to Order Conversion** - Convert quotes to sales orders with one click
+- **Payment Link Generation** - Generate secure payment links for orders
 - **Warehouse Management** - Monitor stock levels and warehouse locations
 
 ### Tax Support
@@ -34,9 +36,9 @@ A modern, full-featured accounts management system built with ASP.NET Core and B
 ## Technology Stack
 
 - **Backend**: ASP.NET Core 10 Web API
-- **Frontend**: Blazor Server
+- **Frontend**: Blazor Server with MudBlazor Material Design
 - **Database**: Entity Framework Core with SQL Server
-- **UI Framework**: Bootstrap 5
+- **UI Framework**: Bootstrap 5 + MudBlazor
 - **Authentication**: ASP.NET Core Identity
 
 ## Project Structure

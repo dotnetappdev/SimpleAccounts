@@ -203,6 +203,40 @@ DELETE /api/salesorders/{id}
 Authorization: Required (Admin, Manager)
 ```
 
+#### Generate Sales Order PDF
+```
+GET /api/salesorders/{id}/pdf
+Authorization: Required (Admin, Manager, SalesUser)
+```
+
+Returns a formatted sales order document with all order details and line items.
+
+#### Generate Payment Link
+```
+POST /api/salesorders/{id}/generate-payment-link
+Authorization: Required (Admin, Manager, SalesUser)
+
+{
+  "paymentMethod": "stripe",
+  "currency": "GBP"
+}
+```
+
+**Response:**
+```json
+{
+  "paymentLink": "https://localhost:5001/payment/abc123...",
+  "paymentToken": "abc123...",
+  "orderId": 1,
+  "amount": 150.00,
+  "currency": "GBP",
+  "expiresAt": "2024-01-02T00:00:00Z",
+  "paymentMethod": "stripe"
+}
+```
+
+Generates a unique payment link for the sales order with support for Stripe, WorldPay, and PayPal.
+
 ---
 
 ### Quotes
@@ -259,6 +293,30 @@ Authorization: Required (Admin, Manager, SalesUser)
 DELETE /api/quotes/{id}
 Authorization: Required (Admin, Manager)
 ```
+
+#### Convert Quote to Sales Order
+```
+POST /api/quotes/{id}/convert-to-order
+Authorization: Required (Admin, Manager, SalesUser)
+```
+
+**Response:**
+```json
+{
+  "id": 1,
+  "orderNumber": "SO-20240101120000",
+  "customerId": 1,
+  "orderDate": "2024-01-01T12:00:00Z",
+  "status": "Draft",
+  "subTotal": 100.00,
+  "taxAmount": 20.00,
+  "totalAmount": 120.00,
+  "notes": "Converted from Quote #Q-001",
+  "orderLines": [...]
+}
+```
+
+Converts a quote into a sales order, preserving all line items and pricing. Updates the quote status to "Accepted".
 
 ---
 
