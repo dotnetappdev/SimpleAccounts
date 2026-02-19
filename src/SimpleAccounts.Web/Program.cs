@@ -41,6 +41,7 @@ builder.Services.AddAuthorizationCore();
 
 // Add Services
 builder.Services.AddScoped<ITaxService, TaxService>();
+builder.Services.AddScoped<SetupService>();
 
 // Add HttpClient for API calls with JWT handler
 builder.Services.AddHttpClient("SimpleAccountsAPI", client =>
@@ -68,21 +69,25 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-// Seed data
-using (var scope = app.Services.CreateScope())
+// Seed data (only if setup is complete)
+var setupComplete = builder.Configuration.GetValue<bool>("SetupComplete");
+if (setupComplete)
 {
-    var services = scope.ServiceProvider;
-    try
+    using (var scope = app.Services.CreateScope())
     {
-        var context = services.GetRequiredService<ApplicationDbContext>();
-        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-        await SeedData.InitializeAsync(context, userManager, roleManager);
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while seeding the database.");
+        var services = scope.ServiceProvider;
+        try
+        {
+            var context = services.GetRequiredService<ApplicationDbContext>();
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+            await SeedData.InitializeAsync(context, userManager, roleManager);
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "An error occurred while seeding the database.");
+        }
     }
 }
 

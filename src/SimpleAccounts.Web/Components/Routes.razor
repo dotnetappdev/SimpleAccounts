@@ -1,5 +1,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 
+<SetupChecker />
+
 <CascadingAuthenticationState>
     <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
         <Found Context="routeData">
@@ -31,3 +33,4 @@
         }
     }
 }
+
