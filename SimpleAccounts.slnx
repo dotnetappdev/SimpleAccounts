@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SimpleAccounts.Api/SimpleAccounts.Api.csproj" />
+    <Project Path="src/SimpleAccounts.Data/SimpleAccounts.Data.csproj" />
+    <Project Path="src/SimpleAccounts.Web/SimpleAccounts.Web.csproj" />
+  </Folder>
+</Solution>

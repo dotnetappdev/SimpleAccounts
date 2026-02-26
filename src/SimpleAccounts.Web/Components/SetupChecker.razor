@@ -1,0 +1,21 @@
+@using SimpleAccounts.Web.Services
+@inject SetupService SetupService
+@inject NavigationManager Navigation
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Check if we're already on the setup page
+        var currentPath = new Uri(Navigation.Uri).PathAndQuery;
+        if (currentPath.StartsWith("/setup", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Redirect to setup if not complete
+        if (!SetupService.IsSetupComplete())
+        {
+            Navigation.NavigateTo("/setup", true);
+        }
+    }
+}

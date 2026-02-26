@@ -1,0 +1,202 @@
+@page "/sales-orders"
+@using Microsoft.EntityFrameworkCore
+@using SimpleAccounts.Data
+@using SimpleAccounts.Data.Models
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<PageTitle>Sales Orders - SimpleAccounts</PageTitle>
+
+<h1>Sales Orders</h1>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="ShowAddDialog">
+        <i class="bi bi-plus"></i> Create Sales Order
+    </button>
+</div>
+
+@if (!string.IsNullOrEmpty(paymentLinkMessage))
+{
+    <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="mb-3" CloseIcon="@Icons.Material.Filled.Close" CloseIconClicked="@(() => paymentLinkMessage = string.Empty)">
+        <strong>Payment Link Generated:</strong><br/>
+        @generatedPaymentLink
+        <button class="btn btn-sm btn-light mt-2" @onclick="ShowCopyMessage">
+            <i class="bi bi-clipboard"></i> Copy Link
+        </button>
+    </MudAlert>
+}
+
+<table class="table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Order Number</th>
+            <th>Customer</th>
+            <th>Order Date</th>
+            <th>Status</th>
+            <th>Total Amount</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var order in salesOrders)
+        {
+            <tr>
+                <td>@order.OrderNumber</td>
+                <td>@order.Customer?.Name</td>
+                <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
+                <td><span class="badge bg-primary">@order.Status</span></td>
+                <td>@order.TotalAmount.ToString("C")</td>
+                <td>
+                    <button class="btn btn-sm btn-info" @onclick="() => ViewOrder(order)">View</button>
+                    <button class="btn btn-sm btn-success" @onclick="() => GeneratePaymentLink(order)" title="Generate Payment Link">
+                        <i class="bi bi-credit-card"></i> Payment
+                    </button>
+                    <button class="btn btn-sm btn-warning" title="Generate PDF">
+                        <i class="bi bi-file-pdf"></i> PDF
+                    </button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => DeleteOrder(order.Id)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (showDialog)
+{
+    <div class="modal" tabindex="-1" style="display: block; background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(viewingOrder != null ? "View" : "Create") Sales Order</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDialog"></button>
+                </div>
+                <div class="modal-body">
+                    @if (viewingOrder != null)
+                    {
+                        <p><strong>Order Number:</strong> @viewingOrder.OrderNumber</p>
+                        <p><strong>Customer:</strong> @viewingOrder.Customer?.Name</p>
+                        <p><strong>Order Date:</strong> @viewingOrder.OrderDate.ToString("yyyy-MM-dd")</p>
+                        <p><strong>Status:</strong> @viewingOrder.Status</p>
+                        <p><strong>Subtotal:</strong> @viewingOrder.SubTotal.ToString("C")</p>
+                        <p><strong>Tax:</strong> @viewingOrder.TaxAmount.ToString("C")</p>
+                        <p><strong>Total:</strong> @viewingOrder.TotalAmount.ToString("C")</p>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Sales order creation would include customer selection, line items, and automatic tax calculation.</p>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDialog">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showPaymentDialog)
+{
+    <MudDialog @bind-Visible="showPaymentDialog">
+        <TitleContent>
+            <MudText Typo="Typo.h6">Generate Payment Link</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudSelect @bind-Value="selectedPaymentMethod" Label="Payment Method" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("stripe")">Stripe</MudSelectItem>
+                <MudSelectItem Value="@("worldpay")">WorldPay</MudSelectItem>
+                <MudSelectItem Value="@("paypal")">PayPal</MudSelectItem>
+            </MudSelect>
+            <MudSelect @bind-Value="selectedCurrency" Label="Currency" Variant="Variant.Outlined" Class="mt-3">
+                <MudSelectItem Value="@("GBP")">GBP - British Pound</MudSelectItem>
+                <MudSelectItem Value="@("USD")">USD - US Dollar</MudSelectItem>
+                <MudSelectItem Value="@("EUR")">EUR - Euro</MudSelectItem>
+            </MudSelect>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => showPaymentDialog = false)">Cancel</MudButton>
+            <MudButton Color="Color.Primary" OnClick="CreatePaymentLink">Generate Link</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private List<SalesOrder> salesOrders = new();
+    private bool showDialog = false;
+    private bool showPaymentDialog = false;
+    private SalesOrder? viewingOrder;
+    private SalesOrder? orderForPayment;
+    private string selectedPaymentMethod = "stripe";
+    private string selectedCurrency = "GBP";
+    private string paymentLinkMessage = string.Empty;
+    private string generatedPaymentLink = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        salesOrders = await DbContext.SalesOrders
+            .Include(so => so.Customer)
+            .OrderByDescending(so => so.OrderDate)
+            .ToListAsync();
+    }
+
+    private void ShowAddDialog()
+    {
+        viewingOrder = null;
+        showDialog = true;
+    }
+
+    private void ViewOrder(SalesOrder order)
+    {
+        viewingOrder = order;
+        showDialog = true;
+    }
+
+    private void CloseDialog()
+    {
+        showDialog = false;
+        viewingOrder = null;
+    }
+
+    private void GeneratePaymentLink(SalesOrder order)
+    {
+        orderForPayment = order;
+        showPaymentDialog = true;
+    }
+
+    private void CreatePaymentLink()
+    {
+        if (orderForPayment != null)
+        {
+            var paymentToken = Guid.NewGuid().ToString("N");
+            var baseUrl = Navigation.BaseUri.TrimEnd('/');
+            generatedPaymentLink = $"{baseUrl}/payment/{paymentToken}";
+            
+            paymentLinkMessage = $"Payment link created for order {orderForPayment.OrderNumber}";
+            showPaymentDialog = false;
+        }
+    }
+
+    private async Task ShowCopyMessage()
+    {
+        // In a real app, this would use JS Interop to copy to clipboard
+        // For now, just show a message
+        paymentLinkMessage = "Link copied to clipboard!";
+        const int MESSAGE_DISPLAY_DURATION_MS = 2000;
+        await Task.Delay(MESSAGE_DISPLAY_DURATION_MS);
+    }
+
+    private async Task DeleteOrder(int id)
+    {
+        var order = await DbContext.SalesOrders.FindAsync(id);
+        if (order != null)
+        {
+            DbContext.SalesOrders.Remove(order);
+            await DbContext.SaveChangesAsync();
+            await LoadData();
+        }
+    }
+}

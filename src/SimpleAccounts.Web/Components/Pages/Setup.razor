@@ -1,0 +1,249 @@
+@page "/setup"
+@layout EmptyLayout
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+@using SimpleAccounts.Web.Services
+@inject SetupService SetupService
+@inject NavigationManager Navigation
+
+<PageTitle>Database Setup - SimpleAccounts</PageTitle>
+
+<div class="setup-container">
+    <MudPaper Class="pa-8" Elevation="4" MaxWidth="800px" Style="margin: 50px auto;">
+        <div class="text-center mb-6">
+            <MudIcon Icon="@Icons.Material.Filled.Storage" Size="Size.Large" Color="Color.Primary" Style="font-size: 4rem;" />
+            <MudText Typo="Typo.h3" Class="mt-4">Welcome to SimpleAccounts</MudText>
+            <MudText Typo="Typo.h6" Color="Color.Secondary">Database Configuration Setup</MudText>
+        </div>
+
+        <MudStepper @ref="stepper">
+            <MudStep Title="Server Connection">
+                <div class="step-content">
+                    <MudText Typo="Typo.body1" Class="mb-4">
+                        Configure your SQL Server connection. This is similar to connecting via SQL Server Management Studio.
+                    </MudText>
+
+                    <MudTextField @bind-Value="connectionInfo.ServerName" 
+                                  Label="Server Name" 
+                                  Variant="Variant.Outlined" 
+                                  Required="true"
+                                  HelperText="e.g., localhost, (localdb)\mssqllocaldb, or server.domain.com"
+                                  Class="mb-4" />
+
+                    <MudSwitch @bind-Value="connectionInfo.UseWindowsAuthentication" 
+                               Label="Use Windows Authentication" 
+                               Color="Color.Primary"
+                               Class="mb-4" 
+                               T="bool" />
+
+                    @if (!connectionInfo.UseWindowsAuthentication)
+                    {
+                        <MudTextField @bind-Value="connectionInfo.Username" 
+                                      Label="Username" 
+                                      Variant="Variant.Outlined" 
+                                      Required="true"
+                                      Class="mb-4" />
+
+                        <MudTextField @bind-Value="connectionInfo.Password" 
+                                      Label="Password" 
+                                      Variant="Variant.Outlined" 
+                                      InputType="InputType.Password"
+                                      Required="true"
+                                      Class="mb-4" />
+                    }
+
+                    <MudTextField @bind-Value="connectionInfo.DatabaseName" 
+                                  Label="Database Name" 
+                                  Variant="Variant.Outlined" 
+                                  Required="true"
+                                  HelperText="The database will be created if it doesn't exist"
+                                  Class="mb-4" />
+                </div>
+            </MudStep>
+
+            <MudStep Title="Test Connection">
+                <div class="step-content">
+                    <MudText Typo="Typo.body1" Class="mb-4">
+                        Test your database connection before proceeding.
+                    </MudText>
+
+                    <MudPaper Class="pa-4 mb-4" Outlined="true">
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Connection Details:</MudText>
+                        <MudText Typo="Typo.body2"><strong>Server:</strong> @connectionInfo.ServerName</MudText>
+                        <MudText Typo="Typo.body2"><strong>Database:</strong> @connectionInfo.DatabaseName</MudText>
+                        <MudText Typo="Typo.body2"><strong>Authentication:</strong> @(connectionInfo.UseWindowsAuthentication ? "Windows Authentication" : $"SQL Server ({connectionInfo.Username})")</MudText>
+                    </MudPaper>
+
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               OnClick="TestConnection"
+                               Disabled="isTestingConnection"
+                               FullWidth="true"
+                               Class="mb-4">
+                        @if (isTestingConnection)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                            <span>Testing Connection...</span>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Cable" Class="me-2" />
+                            <span>Test Connection</span>
+                        }
+                    </MudButton>
+
+                    @if (testResult != null)
+                    {
+                        <MudAlert Severity="@(testResult.Success ? Severity.Success : Severity.Error)" Class="mb-4">
+                            @testResult.Message
+                        </MudAlert>
+                    }
+                </div>
+            </MudStep>
+
+            <MudStep Title="Complete Setup">
+                <div class="step-content">
+                    <MudText Typo="Typo.body1" Class="mb-4">
+                        Click "Complete Setup" to save your configuration and initialize the database.
+                    </MudText>
+
+                    <MudAlert Severity="Severity.Info" Class="mb-4">
+                        <MudText Typo="Typo.body2">
+                            Your connection settings will be saved to:
+                        </MudText>
+                        <ul class="mt-2 mb-0">
+                            <li>appsettings.json</li>
+                            <li>appsettings.Development.json</li>
+                        </ul>
+                        <MudText Typo="Typo.body2" Class="mt-2">
+                            The database will be created and seeded with initial data including test users and sample data.
+                        </MudText>
+                    </MudAlert>
+
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Success" 
+                               OnClick="CompleteSetup"
+                               Disabled="isCompletingSetup || testResult?.Success != true"
+                               FullWidth="true"
+                               Size="Size.Large">
+                        @if (isCompletingSetup)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                            <span>Completing Setup...</span>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="me-2" />
+                            <span>Complete Setup</span>
+                        }
+                    </MudButton>
+
+                    @if (setupError != null)
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mt-4">
+                            @setupError
+                        </MudAlert>
+                    }
+                </div>
+            </MudStep>
+        </MudStepper>
+    </MudPaper>
+</div>
+
+<style>
+    .setup-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+    }
+
+    .step-content {
+        padding: 20px 0;
+        min-height: 300px;
+    }
+</style>
+
+@code {
+    private MudStepper? stepper;
+    private DatabaseConnectionInfo connectionInfo = new();
+    private TestConnectionResult? testResult;
+    private bool isTestingConnection = false;
+    private bool isCompletingSetup = false;
+    private string? setupError;
+
+    protected override void OnInitialized()
+    {
+        // Set default server for LocalDB
+        connectionInfo.ServerName = "(localdb)\\mssqllocaldb";
+        connectionInfo.DatabaseName = "SimpleAccounts";
+        connectionInfo.UseWindowsAuthentication = true;
+    }
+
+    private async Task TestConnection()
+    {
+        testResult = null;
+        isTestingConnection = true;
+        setupError = null;
+
+        try
+        {
+            var connectionString = SetupService.BuildConnectionString(connectionInfo);
+            var success = await SetupService.TestConnectionAsync(connectionString);
+
+            testResult = new TestConnectionResult
+            {
+                Success = success,
+                Message = success 
+                    ? "✓ Connection successful! You can proceed to complete the setup." 
+                    : "✗ Connection failed. Please check your settings and try again."
+            };
+
+            if (success)
+            {
+                // Move to next step manually  
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            testResult = new TestConnectionResult
+            {
+                Success = false,
+                Message = $"✗ Connection failed: {ex.Message}"
+            };
+        }
+        finally
+        {
+            isTestingConnection = false;
+        }
+    }
+
+    private async Task CompleteSetup()
+    {
+        isCompletingSetup = true;
+        setupError = null;
+
+        try
+        {
+            var connectionString = SetupService.BuildConnectionString(connectionInfo);
+            await SetupService.SaveConnectionStringAsync(connectionString);
+
+            // Show success and redirect
+            await Task.Delay(1000);
+            Navigation.NavigateTo("/", true); // Force reload to pick up new settings
+        }
+        catch (Exception ex)
+        {
+            setupError = $"Failed to complete setup: {ex.Message}";
+        }
+        finally
+        {
+            isCompletingSetup = false;
+        }
+    }
+
+    private class TestConnectionResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+}
